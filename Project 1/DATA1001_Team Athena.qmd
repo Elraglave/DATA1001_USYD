@@ -1,0 +1,194 @@
+---
+title: "DATA1001 Project 1"
+author: 
+  - Team Athena
+  - Thieu Quang Khai (540932335) 
+  - Zainab Ikhlaas Roohullah (540893450)
+  - Chloe Gershuny (540894457)
+  - Sreevadana Venkitachalam (540658089)
+  - Ruth Geisler (541040105)
+  - Tanisha Joshi (530743239)
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    code-fold: true
+---
+
+# Recommendation/Insight
+
+-   Australian Government capped student-visas because rent increased.
+-   Research showed International student numbers had decreased when rent started to increase.
+-   Our Data showed they are paying higher rent rates compared to Domestic students
+-   They take up less properties.
+-   Recommendation: Universities should convert unused buildings and turn it into affordable accommodation.
+
+# Evidence
+
+## IDA
+
+The data was acquired from the DATA1001 & DATA1901 students in the semester 2 2024 cohort.
+
+The data consists of 533 observations (rows) of 30 variables (columns), with “student_type” classified as character (qualitative), hours_work (numerical, quantitative) and the “rent” variable classified as numerical (quantitative).
+
+DATA1001 is taken mostly by students with interest in data science and is not a representative sample of all university students. Student responses may have been limited by social-desirability bias, and estimates may be provided if students don't recall accurate data (e.g. their rent). Additionally, students who are not first language English speakers may have misunderstood some questions.
+
+The relevant data assumptions involve that the students actually understood the questions, and answered accurately.
+
+The data cleaning involved finding the mean, median and maximum rent. There were also some extreme values which were removed. The mean rent value was 296.8135, so all the values that surpassed 1100 were considered extreme values. To address this, the graph only included rent values in the bracket \$2-1100 for a more accurate representation. There were also several people who left the questions blank. These values were also removed to avoid unnecessarily skewing the data (NA values omitted).
+
+## Research Question 1
+
+Would capping international students affect the rental market?
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+# read in your data here using read.csv
+project1 = read.csv("data1001_survey_data.csv")
+
+#change student type to factor
+project1$student_type = as.factor(project1$student_type) 
+
+#omit NA values
+project1_clean = na.omit(project1) 
+
+#Omit extreme outliers
+project1_filtered = subset(project1_clean, rent < 1100.0 & rent > 2.0 & hours_work < 200)
+
+#Divide data into 2 subsets based on type of student
+project1_filtered_Inter = subset(project1_filtered, student_type == "International")
+project1_filtered_Dom = subset(project1_filtered, student_type == "Domestic")
+
+#Rent distribution by student type
+ggplot(project1_filtered, aes(x = rent, fill = student_type)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 15, color = "black") + 
+  theme_minimal() +
+  labs(title = "Rent Distribution by Student Type",
+       x = "Rent",
+       y = "Density") +  # Adding y-axis label for clarity
+  facet_grid(~student_type) +
+  
+  # Add normal distribution line for International students
+  stat_function(
+    data = subset(project1_filtered, student_type == "International"),
+    fun = dnorm,
+    args = list(
+      mean = mean(project1_filtered_Inter$rent),
+      sd = sd(project1_filtered_Inter$rent)
+    ),
+    colour = 'black',
+    size = 0.8
+  ) +
+  
+  scale_fill_manual(values = c("Domestic" = "cyan", "International" = "lightcoral"))
+#comparative boxplot
+ggplot(project1_filtered, aes(x = rent, y = student_type, fill = student_type)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Rent Distribution by Student Type",
+       x = "Rent",
+       y = "")
+
+```
+
+The first research question involved the analysis of the rent distribution according to student type (domestic or international). From the density histogram we can see that most international students pay higher overall amounts in rent, which can be modeled by a normal distribution.\
+This conclusion is supported by the comparative boxplot which shows higher mean rent for international students (when compared with domestic students).
+
+## Research Question 2 (Linear Model)
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(plotly)
+# read in your data here using read.csv
+project1 = read.csv("data1001_survey_data.csv")
+#Rent and Hours of work
+
+ggplot(project1_filtered, aes(x = rent, y = hours_work)) +
+  geom_point(aes(colour = student_type)) +
+  theme_minimal() +
+  labs(title = "Linear Module Of Rent And Hours Of Work",
+       x = "Rent",
+       y = "hours of work") + 
+geom_smooth(method = "lm", se = F)
+
+#calculate correlation between rent and hours_work
+cor(project1_filtered$hours_work, project1_filtered$rent) 
+
+#Residual plot
+model = lm(hours_work ~ rent, data = project1_filtered)
+ggplot(model, aes(x = .fitted, 
+                  y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, 
+             linetype = "dotted", 
+             colour = "red") +
+  labs(title = "Residual Plot",
+       x = "Fitted Values",
+       y = "Residuals")
+
+summary(model)
+```
+
+A scatterplot was produced for the pair of variables, hours of work and rent. The “rent” was the independent variable on the x axis, and “hours of work” was the dependent / response variable on the y axis. At this point, one variable cannot be used to predict another, we can only observe the correlation.
+
+The correlation coefficient between these 2 variables is r = 0.028573, thus a very weak negative correlation. This indicates that there is almost no correlation between the variables, with no cluster around any point. In terms of scatter plot analysis, the mean of the rent was \$511.67, and the standard deviation of rent was \$208.08. For the y variable, hours of work, the mean was 7.951178 and the standard deviation was 15.10929.
+
+A regression line was produced via the 5 numerical summaries, and is evident on the residual plot.
+
+Next, a residual plot was created for the 2 variables. It indicates the error between the actual value and the prediction, and the relationship between fitted value and residuals shows no homoscedasticity, and there is an evident pattern on the residual plot. The points are clustered below the horizontal line (0), and are more sparse above this line. The scatter plot does not show a linear trend. The distribution of the coloured dots represents that more domestic students (vs international) are employed. Thus, we cannot use the linear model to represent our data, and cannot make predictions via this method. Nevertheless, the equation for the regression line is y = 0.002075x + 6.889579. It would be better to use a measure of spread such as mean to make predictions.
+
+## Articles
+
+-   Truu, M. and Evans, J. (2024, August 27). The true scale of Australia’s international student industry — in four charts. ABC News. https://www.abc.net.au/news/2024-08-27/australias-international-student-industry-in-charts/104244340.
+-   Property Council of Australia. (2024, April 26). International students not to blame for housing crisis. \[Press release\] https://www.propertycouncil.com.au/media-releases/international-students-not-to-blame-for-housing-crisis
+
+According to the Student Accommodation Council (2023), International students account for 14.6% of the Sydney rental market. Property council (2024) uses this to say they aren’t to blame for the housing crisis as the Australian government suggests. This is consistent with our findings, since they take up less properties than domestic do.
+
+# Acknowledgements
+
+Throughout the course of this project, all the members of the group have strived to be ethical and professional in our work. We have ensured that any results obtained were purely through impartial analysis of the data that was provided to us, and were not motivated by any personal opinions, public influence or prejudice in accordance with the Truthfulness and Integrity value outlined by the ISI. Furthermore, any outcomes that we have presented in our report were not predetermined, or derived from any existing sources. Any and all results were procured from the survey conducted on the DATA1001/1091 cohort, analysed using appropriate resources and generated into a reproducible report in accordance with the Avoiding Preempted Outcomes principle outlined by the ISI.
+
+-   Chloe Gershuny (540894457) - IDA, RQ1 & RQ2 Analysis
+-   Thieu Quang Khai (540932335) - Graphing of RQ1 & RQ2, Analysis
+-   Ruth Geisler (541040105) - Articles and research
+-   Sreevadana Venkitachalam (540658089) - Presentation and compilation, writing the ISI acknowledgement
+-   Tanisha Joshi (530743239) - Compilation of .qmd document, Analysis
+-   Zainab Ikhlaas Roohullah (540893450)- Articles and research
+-   Everyone equally contributed to the creative process, coming up with the questions and how we would present our ideas.
+-   We also acknowledge the help of Kevin and Lachlan from the drop-in session on Tuesday, 10th Sept, 2024.
+
+**Meeting 1:**\
+- **Date**: Monday 19 August 2024\
+- **Duration of meeting**: 1 hour\
+- **People Attended**: Zainab, Tanisha, Ruth, Chloe, Sreevadana, Khai\
+- **Key points discussed**: Question established, roles established
+
+**Meeting 2:**\
+- **Date**: Monday 26 August 2024\
+- **Duration of meeting**: 1 hour\
+- **People Attended**: Zainab, Ruth, Chloe, Sreevadana, Khai\
+- **Key points discussed**: Further details of questions, First few graphs outlined
+
+**Meeting 3:**\
+- **Date**: Monday 2 September 2024\
+- **Duration of meeting**: 1 hour\
+- **People Attended**: Zainab, Tanisha, Ruth, Chloe, Sreevadana, Khai\
+- **Key points discussed**: Interpretation discussed, Articles and correlation
+
+**Meeting 4:**\
+- **Date**: Monday 9 September 2024\
+- **Duration of meeting**: 1 hour\
+- **People Attended**: Zainab, Tanisha, Chloe, Sreevadana, Khai\
+- **Key points discussed**: Finalizing report, preparations for presentation
+
+**Meeting 5:**\
+- **Date**: Wednesday 11 September 2024\
+- **Duration of meeting**: 1 hour\
+- **People Attended**: Zainab, Tanisha, Ruth, Chloe, Sreevadana, Khai\
+- **Key points discussed**: Final run for presentation, Report submission preparation
+
+**Meeting 6:**\
+- **Date**: Friday 13 September 2024\
+- **Duration of meeting**: 1 hour\
+- **People Attended**: Tanisha, Ruth, Chloe, Khai\
+- **Key points discussed**: Final checks for presentation, Report submission
