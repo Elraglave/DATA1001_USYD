@@ -1,4 +1,4 @@
-# Data Analysis Projects - University of Sydney
+# Data 1001 Projects - University of Sydney
 
 ## Project 1: Student Rental Market and International Student Cap
 ### Overview
